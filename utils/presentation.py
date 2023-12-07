@@ -132,18 +132,47 @@ def compare_image_filter(img: Image, operation: callable, gray=False):
     return filtered
 
 
-def display_side_by_side(img1_array, img2_array):
-    if img1_array.dtype == "uint16":
-        img1_array = cv.normalize(img1_array, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
-    img1 = Image.fromarray(img1_array)
+def display_side_by_side(img1_array, img2_array, scale_factor=0.5):
+    img1_array = cv.normalize(img1_array, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
+    img2_array = cv.normalize(img2_array, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
 
-    if img2_array.dtype == "uint16":
-        img2_array = cv.normalize(img2_array, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
-    img2 = Image.fromarray(img2_array)
+    # Convert grayscale numpy arrays to OpenCV format
+    img1 = convert_to_opencv(img1_array)
+    img2 = convert_to_opencv(img2_array)
 
-    new_img = Image.new("RGB", (img1.width + img2.width, max(img1.height, img2.height)))
+    # Get dimensions of the images
+    height = max(img1.shape[0], img2.shape[0])
+    width = img1.shape[1] + img2.shape[1]
 
-    new_img.paste(img1, (0, 0))
-    new_img.paste(img2, (img1.width, 0))
+    # Create a blank image to display both images side by side
+    new_img = np.zeros((height, width, 3), dtype=np.uint8)
 
-    new_img.show()
+    # Place the first image on the left side of the new image
+    new_img[:img1.shape[0], :img1.shape[1]] = img1
+
+    # Place the second image on the right side of the new image
+    new_img[:img2.shape[0], img1.shape[1]:] = img2
+
+    # Resize the combined image
+    new_img = cv.resize(new_img, (0, 0), fx=scale_factor, fy=scale_factor)
+
+    showImage(new_img)
+
+
+def convert_to_opencv(img):
+    if image_has_3_channels(img):
+        return cv.cvtColor(img, cv.COLOR_RGB2BGR)
+    return cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+
+
+def image_has_3_channels(img):
+    return len(img.shape) == 3 and img.shape[2] == 3
+
+
+def showImage(img):
+    cv.imshow('Combined Images', img)
+    while True:
+        key = cv.waitKey(1) & 0xFF
+        if key == ord('q') or cv.getWindowProperty('Combined Images', cv.WND_PROP_VISIBLE) < 1:
+            break
+    cv.destroyAllWindows()
