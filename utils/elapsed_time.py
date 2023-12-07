@@ -1,4 +1,4 @@
-from timeit import default_timer as timer
+import time
 import functools
 from pyinstrument import Profiler
 
@@ -6,14 +6,29 @@ from pyinstrument import Profiler
 BASE_DIR = '.'
 
 
-class Timer:
+class TimeElapseMeasure:
+    """Utility to be used as a context manager to calculate time execution"""
+
     def __enter__(self):
-        self.start = timer()
+        self.start = time.perf_counter()
         return self
 
-    def __exit__(self, *exc_info):
-        end = timer()
-        print(end - self.start)
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        self.finish = time.perf_counter()
+        print(f'Time elapse {self.finish - self.start:0.4f} s')
+
+
+def time_elapse_measure(func):
+    """Utility to calculate time execution as a decorator"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        value = func(*args, **kwargs)
+        finish = time.perf_counter()
+
+        print(f'Time elapse: {finish - start:0.4f} s')
+        return value
+    return wrapper
 
 
 class SampleTimeExpensiveCalls:
@@ -34,7 +49,7 @@ class SampleTimeExpensiveCalls:
         self.profiler.stop()
         if self.output_html:
             output = self.profiler.output_html()
-            with open(f"{settings.BASE_DIR}/profiler_output.html", "w") as f:
+            with open(f"{BASE_DIR}/profiler_output.html", "w") as f:
                 f.write(output)
         else:
             self.profiler.print(color=True)
@@ -60,7 +75,7 @@ def sample_time_expensive_calls(output_html=False):
                 return result
 
             output = profiler.output_html()
-            with open(f"{settings.BASE_DIR}/profiler_output.html", "w") as f:
+            with open(f"{BASE_DIR}/profiler_output.html", "w") as f:
                 f.write(output)
             return result
         return wrapper
