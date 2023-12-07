@@ -23,7 +23,7 @@ class SampleTimeExpensiveCalls:
     """
 
     def __init__(self, open_in_browser=False):
-        self.open_in_browser = open_in_browser
+        self.output_html = open_in_browser
 
     def __enter__(self):
         self.profiler = Profiler()
@@ -31,10 +31,13 @@ class SampleTimeExpensiveCalls:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
-        if self.open_in_browser:
-            self.profiler.open_in_browser()
-            return
-        self.profiler.print()
+        self.profiler.stop()
+        if self.output_html:
+            output = self.profiler.output_html()
+            with open(f"{settings.BASE_DIR}/profiler_output.html", "w") as f:
+                f.write(output)
+        else:
+            self.profiler.print(color=True)
 
 
 def sample_time_expensive_calls(output_html=False):
@@ -57,7 +60,7 @@ def sample_time_expensive_calls(output_html=False):
                 return result
 
             output = profiler.output_html()
-            with open(f"{BASE_DIR}/profiler_output.html", "w") as f:
+            with open(f"{settings.BASE_DIR}/profiler_output.html", "w") as f:
                 f.write(output)
             return result
         return wrapper
