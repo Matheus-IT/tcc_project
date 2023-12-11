@@ -58,6 +58,9 @@ def detect_contours_of_artifacts(original, roi):
     # Find contours in the Canny image
     contours, _ = cv.findContours(roi, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
+    if not contours:
+        return contours
+
     # Function to calculate the distance between two points
     def distance(point1, point2):
         return np.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)

@@ -1,3 +1,5 @@
+import sys
+import argparse
 import pydicom
 from utils.presentation import display_side_by_side
 from utils.segmentation import get_high_intensity_cluster_kmeans
@@ -18,11 +20,14 @@ from steps import (
 )
 
 
-@time_elapse_measure
-def main():
-    MAMMOGRAPHY_DATASET_PATH = "/home/matheuscosta/Documents/mammography-dataset/my_subdataset/subdataset_v4/D3-0051/1-1.dcm"
-    ds = pydicom.dcmread(MAMMOGRAPHY_DATASET_PATH)
+def detect(args):
+    ds = pydicom.dcmread(args.path)
+
     original = ds.pixel_array
+
+    if ds.PhotometricInterpretation == 'MONOCHROME1':
+        original = cv.normalize(original, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
+        original = np.invert(original)
 
     modified = original.copy()
 
@@ -35,12 +40,31 @@ def main():
     roi = get_roi_from_mask(modified)
 
     roi = detect_contours_of_artifacts(original, roi)
+    if not len(roi):
+        return False
 
     roi = paint_fragments_in_red(roi)
 
     modified = mark_roi_in_original_image(original, roi)
 
-    display_side_by_side(original, modified, scale_factor=0.1)
+    if args.show == 'y' or args.show == 'yes' or args.show == 's' or args.show == 'sim':
+        display_side_by_side(original, modified, scale_factor=0.1)
+
+    return True
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Script para detecção em imagens')
+    parser.add_argument('path', metavar='PARAM', type=str, help='Caminho para arquivo DICOM da imagem')
+    parser.add_argument('--show', default='n', type=str, help='Indique se a imagem resultante deverá ser mostrada')
+
+    args = parser.parse_args()
+
+    if not args.path:
+        raise Exception('É necessário passar o caminho do arquivo DICOM')
+    
+    result = detect(args)
+    print(result)
 
 
 if __name__ == "__main__":
